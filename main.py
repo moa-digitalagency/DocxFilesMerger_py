@@ -5,20 +5,32 @@ Email: moa@myoneart.com
 Copyright © 2025 MOA Digital Agency LLC. Tous droits réservés.
 """
 
+# Ce fichier est utilisé seulement pour la compatibilité avec Replit.
+# Pour utiliser l'outil, exécutez directement docx_files_merger.py
+
+import sys
 import os
-from flask import Flask
-from models import db
-from app import app as flask_app
 
-# S'assurer que l'application a une URI de base de données
-if 'SQLALCHEMY_DATABASE_URI' not in flask_app.config and os.environ.get('DATABASE_URL'):
-    flask_app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+# Afficher un message d'information
+print("DocxFilesMerger CLI - Outil de fusion de documents")
+print("Développé par MOA Digital Agency LLC (https://myoneart.com)")
+print("Copyright © 2025 MOA Digital Agency LLC. Tous droits réservés.\n")
 
-# Initialiser la base de données
-with flask_app.app_context():
-    db.create_all()
+print("Pour utiliser cet outil:")
+print("./docx_files_merger.py chemin/vers/archive.zip [options]\n")
 
-app = flask_app
+print("Options disponibles:")
+print("  -o, --output-dir DOSSIER : Dossier de sortie")
+print("  -q, --quiet : Mode silencieux")
+print("  -h, --help : Afficher l'aide\n")
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+print("Exemple d'utilisation:")
+print("  ./docx_files_merger.py ./test_docx_merger/archive_test.zip -o ./resultats\n")
+
+print("Documentation complète disponible dans DOCUMENTATION.md")
+
+# Vérifier si des arguments sont passés et exécuter le script principal si nécessaire
+if len(sys.argv) > 1:
+    print("\nExécution de docx_files_merger.py avec vos arguments...\n")
+    from docx_files_merger import main
+    sys.exit(main())
