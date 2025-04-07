@@ -1,0 +1,64 @@
+Context and Requirements:
+I need to create a Python script on Replit to handle a .zip file containing over 5,000 .doc or .docx files (patient records). This script must:
+
+Extract all .doc and .docx files from the .zip.
+
+Merge all extracted files into a single .docx document.
+
+Important: Before the content of each merged file, add a line in the following format:
+<FILENAME.extension>........................................................................................................
+This line clearly marks the beginning of each patient record.
+
+Also generate a .pdf version of the merged document.
+
+Provide a (HTML or PHP) interface that allows:
+
+Uploading the .zip file as input.
+
+Downloading the resulting .docx and .pdf files as output.
+
+Detailed Expectations:
+
+Handle the reading and extraction of the .zip.
+
+Accept both .doc and .docx files and convert them if necessary for merging.
+
+Automatically merge all files into a single .docx document with the specified header line.
+
+Export the final result to .pdf.
+
+Provide a simple web interface (HTML/PHP) where the user:
+
+Uploads the .zip file.
+
+Retrieves the final .docx and .pdf outputs.
+
+Technical Details to Consider:
+
+Use the appropriate Python libraries to handle .docx files (e.g., python-docx) and .doc files (possibly via a built-in conversion tool or third-party library).
+
+Convert the merged document to .pdf (using docx2pdf, pywin32, or an equivalent solution).
+
+Handle potential errors (unreadable files, incorrect formats, etc.).
+
+Provide clear and well-commented code.
+
+What I Expect from You:
+
+Automatically generate the complete Python code (and the web interface) for Replit, without me having to write it myself.
+
+Include a minimal web interface (HTML/PHP) to upload the .zip file and retrieve the merged result.
+
+Strictly follow the specifications above and deliver a script ready for immediate use.
+
+Note:
+
+The script must handle a large number of files (over 5,000).
+
+Before adding each file’s content to the merged document, insert the line <FILENAME.extension>.........................................................................................................
+
+Properly detect and process .doc and .docx.
+
+Ensure code robustness.
+
+Thank you for generating the final, fully operational code for this task.
