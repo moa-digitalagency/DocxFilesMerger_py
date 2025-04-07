@@ -1,8 +1,11 @@
-import logging
-from app import app
+"""
+DocxFilesMerger - Application de traitement et fusion de documents.
+Développé par MOA Digital Agency LLC (https://myoneart.com)
+Email: moa@myoneart.com
+Copyright © 2025 MOA Digital Agency LLC. Tous droits réservés.
+"""
 
-# Configure logging for better debugging
-logging.basicConfig(level=logging.DEBUG)
+from app import app
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

@@ -1,3 +1,9 @@
+/**
+ * DocxFilesMerger - Application de traitement et fusion de documents.
+ * Développé par MOA Digital Agency LLC (https://myoneart.com)
+ * Email: moa@myoneart.com
+ * Copyright © 2025 MOA Digital Agency LLC. Tous droits réservés.
+ */
 // Global variables
 let uploadStatus = 'idle'; // idle, uploading, processing, complete, error
 let statusCheckInterval = null;

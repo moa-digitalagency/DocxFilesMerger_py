@@ -1,13 +1,19 @@
-# 📋 Traitement de Dossiers Médicaux 🏥
+# 📋 DocxFilesMerger 🏥
 
 ## 🌟 Présentation
 
-Bienvenue dans l'application de **Traitement de Dossiers Médicaux** ! 🎉
+Bienvenue dans l'application **DocxFilesMerger** ! 🎉
 Cette application web permet de traiter efficacement et rapidement des archives ZIP contenant des milliers de dossiers médicaux au format .doc ou .docx.
 
 ![Badge Langage](https://img.shields.io/badge/Langage-Python-blue)
 ![Badge Framework](https://img.shields.io/badge/Framework-Flask-green)
 ![Badge Version](https://img.shields.io/badge/Version-1.0.0-orange)
+
+### 📝 Développeur
+
+**MOA Digital Agency LLC**  
+Site web: [https://myoneart.com](https://myoneart.com)  
+Contact: [moa@myoneart.com](mailto:moa@myoneart.com)
 
 ## 🚀 Fonctionnalités principales
 
@@ -68,9 +74,9 @@ Cette application web permet de traiter efficacement et rapidement des archives 
 ## 📞 Support
 
 Pour toute question ou problème, n'hésitez pas à :
-- 📧 Contacter le support : support@example.com
-- 📝 Ouvrir un ticket sur GitHub
+- 📧 Contacter le support : [moa@myoneart.com](mailto:moa@myoneart.com)
+- 🌐 Visiter notre site web : [https://myoneart.com](https://myoneart.com)
 
 ## 📜 Licence
 
-Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
+Ce projet est développé par MOA Digital Agency LLC. Tous droits réservés © 2025.
