@@ -14,21 +14,21 @@
         
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="card-title"><i class="fas fa-file-medical me-2"></i>Medical Records Processor</h5>
+                <h5 class="card-title"><i class="fas fa-file-medical me-2"></i>Traitement de Dossiers Médicaux</h5>
             </div>
             <div class="card-body">
                 <p class="card-text">
-                    This tool processes a ZIP archive containing medical records (.doc or .docx files), 
-                    merges them into a single document, and converts it to PDF.
+                    Cet outil traite une archive ZIP contenant des dossiers médicaux (fichiers .doc ou .docx),
+                    les fusionne en un seul document et le convertit en PDF.
                 </p>
                 
                 <div class="alert alert-info">
-                    <h6><i class="fas fa-info-circle me-2"></i>How it works:</h6>
+                    <h6><i class="fas fa-info-circle me-2"></i>Comment ça fonctionne :</h6>
                     <ol>
-                        <li>Upload a ZIP file containing .doc or .docx medical records</li>
-                        <li>The system will extract and merge all records into a single document</li>
-                        <li>Each record will be separated by a header line with the filename</li>
-                        <li>Download the merged document in DOCX and PDF formats</li>
+                        <li>Téléversez un fichier ZIP contenant des dossiers médicaux (.doc ou .docx)</li>
+                        <li>Le système extraira et fusionnera tous les dossiers en un seul document</li>
+                        <li>Chaque dossier sera séparé par une ligne d'en-tête avec le nom du fichier</li>
+                        <li>Téléchargez le document fusionné aux formats DOCX et PDF</li>
                     </ol>
                 </div>
                 
@@ -36,15 +36,15 @@
                 <div class="step-indicator mb-4">
                     <div id="upload-step" class="step">
                         <div class="step-number">1</div>
-                        <div class="step-label">Upload</div>
+                        <div class="step-label">Téléverser</div>
                     </div>
                     <div id="process-step" class="step">
                         <div class="step-number">2</div>
-                        <div class="step-label">Process</div>
+                        <div class="step-label">Traiter</div>
                     </div>
                     <div id="complete-step" class="step">
                         <div class="step-number">3</div>
-                        <div class="step-label">Complete</div>
+                        <div class="step-label">Terminer</div>
                     </div>
                 </div>
                 
@@ -54,10 +54,10 @@
                         <div class="file-icon">
                             <i class="fas fa-file-archive"></i>
                         </div>
-                        <p class="mb-2">Drag and drop your ZIP file here</p>
-                        <p class="text-muted">or</p>
+                        <p class="mb-2">Glissez et déposez votre fichier ZIP ici</p>
+                        <p class="text-muted">ou</p>
                         <button type="button" class="btn btn-secondary">
-                            <i class="fas fa-folder-open me-2"></i>Browse Files
+                            <i class="fas fa-folder-open me-2"></i>Parcourir les fichiers
                         </button>
                         <input type="file" id="file-input" class="d-none" accept=".zip">
                     </div>
@@ -88,7 +88,7 @@
                     
                     <div class="text-center">
                         <button type="submit" id="upload-button" class="btn btn-primary" disabled>
-                            <i class="fas fa-upload me-2"></i>Upload and Process
+                            <i class="fas fa-upload me-2"></i>Téléverser et Traiter
                         </button>
                     </div>
                 </form>
@@ -104,26 +104,26 @@
                 <h5 class="card-title"><i class="fas fa-question-circle me-2"></i>Instructions</h5>
             </div>
             <div class="card-body">
-                <h6>Preparing Your ZIP File</h6>
-                <p>The ZIP file should contain medical record documents in .doc or .docx format. The system will:</p>
+                <h6>Préparation de votre fichier ZIP</h6>
+                <p>Le fichier ZIP doit contenir des documents de dossiers médicaux au format .doc ou .docx. Le système va :</p>
                 <ul>
-                    <li>Extract all .doc and .docx files (ignoring other file types)</li>
-                    <li>Merge the contents into a single document</li>
-                    <li>Add a separator line before each document's content with the format:<br>
-                        <code>&lt;FILENAME.extension&gt;........................................................................................................</code>
+                    <li>Extraire tous les fichiers .doc et .docx (en ignorant les autres types de fichiers)</li>
+                    <li>Fusionner le contenu en un seul document</li>
+                    <li>Ajouter une ligne de séparation avant le contenu de chaque document au format :<br>
+                        <code>&lt;NOMFICHIER.extension&gt;........................................................................................................</code>
                     </li>
-                    <li>Generate both .docx and .pdf versions of the merged document</li>
+                    <li>Générer les versions .docx et .pdf du document fusionné</li>
                 </ul>
                 
                 <div class="alert alert-warning">
-                    <strong>Important:</strong> For large archives with many files (5,000+), processing may take several minutes.
+                    <strong>Important :</strong> Pour les grandes archives contenant de nombreux fichiers (5 000+), le traitement peut prendre plusieurs minutes.
                 </div>
                 
-                <h6>After Processing</h6>
-                <p>Once processing is complete, you'll be able to download:</p>
+                <h6>Après le traitement</h6>
+                <p>Une fois le traitement terminé, vous pourrez télécharger :</p>
                 <ul>
-                    <li>A merged .docx file containing all records</li>
-                    <li>A .pdf version of the merged document</li>
+                    <li>Un fichier .docx fusionné contenant tous les dossiers</li>
+                    <li>Une version .pdf du document fusionné</li>
                 </ul>
             </div>
         </div>

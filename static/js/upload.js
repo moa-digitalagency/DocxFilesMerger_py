@@ -62,7 +62,7 @@ function setupForm() {
         if (fileInput.files.length > 0) {
             uploadFile(fileInput.files[0]);
         } else {
-            showAlert('Please select a ZIP file to upload.', 'danger');
+            showAlert('Veuillez sélectionner un fichier ZIP à téléverser.', 'danger');
         }
     });
 }
@@ -95,7 +95,7 @@ function handleFiles(files) {
     
     // Check if it's a ZIP file
     if (file.type !== 'application/zip' && !file.name.toLowerCase().endsWith('.zip')) {
-        showAlert('Please upload a ZIP file.', 'danger');
+        showAlert('Veuillez téléverser un fichier ZIP.', 'danger');
         return;
     }
     
@@ -109,10 +109,10 @@ function handleFiles(files) {
 }
 
 function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return '0 Octets';
     
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ['Octets', 'Ko', 'Mo', 'Go'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
@@ -139,13 +139,13 @@ function showAlert(message, type = 'info') {
 
 function uploadFile(file) {
     if (uploadStatus === 'uploading' || uploadStatus === 'processing') {
-        showAlert('A file is already being processed. Please wait.', 'warning');
+        showAlert('Un fichier est déjà en cours de traitement. Veuillez patienter.', 'warning');
         return;
     }
     
     // Update status
     uploadStatus = 'uploading';
-    updateProgressUI(5, 'Uploading file...', 'upload');
+    updateProgressUI(5, 'Téléversement du fichier...', 'upload');
     
     // Create form data
     const formData = new FormData();
@@ -159,14 +159,14 @@ function uploadFile(file) {
     .then(response => {
         if (!response.ok) {
             return response.json().then(data => {
-                throw new Error(data.error || 'Upload failed');
+                throw new Error(data.error || 'Échec du téléversement');
             });
         }
         return response.json();
     })
     .then(data => {
         // Upload successful, start processing
-        updateProgressUI(30, 'Upload complete. Starting processing...', 'process');
+        updateProgressUI(30, 'Téléversement terminé. Démarrage du traitement...', 'process');
         
         // Start processing the file
         return startProcessing(data.zip_path, data.file_count);
@@ -174,7 +174,7 @@ function uploadFile(file) {
     .catch(error => {
         uploadStatus = 'error';
         updateProgressUI(0, '', 'error');
-        showAlert(`Error: ${error.message}`, 'danger');
+        showAlert(`Erreur : ${error.message}`, 'danger');
     });
 }
 
@@ -193,7 +193,7 @@ function startProcessing(zipPath, fileCount) {
     .then(response => {
         if (!response.ok) {
             return response.json().then(data => {
-                throw new Error(data.error || 'Processing failed');
+                throw new Error(data.error || 'Échec du traitement');
             });
         }
         return response.json();
@@ -205,7 +205,7 @@ function startProcessing(zipPath, fileCount) {
     .catch(error => {
         uploadStatus = 'error';
         updateProgressUI(0, '', 'error');
-        showAlert(`Error: ${error.message}`, 'danger');
+        showAlert(`Erreur : ${error.message}`, 'danger');
         clearInterval(statusCheckInterval);
     });
 }
@@ -231,7 +231,7 @@ function checkProcessingStatus(fileCount) {
                     return null;
                 }
                 return response.json().then(data => {
-                    throw new Error(data.error || 'Status check failed');
+                    throw new Error(data.error || 'Échec de la vérification du statut');
                 });
             }
             return response.json();
@@ -243,35 +243,35 @@ function checkProcessingStatus(fileCount) {
             switch (data.status) {
                 case 'starting':
                 case 'extracting':
-                    updateProgressUI(30, 'Extracting files from ZIP...', 'process');
+                    updateProgressUI(30, 'Extraction des fichiers de l\'archive ZIP...', 'process');
                     break;
                     
                 case 'converting':
                     const convertProgress = data.progress_percent || 35;
-                    updateProgressUI(convertProgress, `Converting files (${data.converted || 0}/${data.total_files || fileCount})...`, 'process');
+                    updateProgressUI(convertProgress, `Conversion des fichiers (${data.converted || 0}/${data.total_files || fileCount})...`, 'process');
                     break;
                     
                 case 'processing':
                     const processedPercent = data.progress_percent || 
                                             (data.processed && data.total ? Math.round((data.processed / data.total) * 40) + 40 : 50);
-                    updateProgressUI(processedPercent, `Merging documents (${data.processed || 0}/${data.total || fileCount})...`, 'process');
+                    updateProgressUI(processedPercent, `Fusion des documents (${data.processed || 0}/${data.total || fileCount})...`, 'process');
                     break;
                     
                 case 'merging_complete':
-                    updateProgressUI(80, 'File merging complete. Converting to PDF...', 'process');
+                    updateProgressUI(80, 'Fusion des fichiers terminée. Conversion en PDF...', 'process');
                     break;
                     
                 case 'converting_to_pdf':
-                    updateProgressUI(85, 'Converting merged document to PDF...', 'process');
+                    updateProgressUI(85, 'Conversion du document fusionné en PDF...', 'process');
                     break;
                     
                 case 'pdf_conversion_complete':
-                    updateProgressUI(95, 'PDF conversion complete. Finalizing...', 'process');
+                    updateProgressUI(95, 'Conversion PDF terminée. Finalisation...', 'process');
                     break;
                     
                 case 'complete':
                     uploadStatus = 'complete';
-                    updateProgressUI(100, 'Processing complete!', 'complete');
+                    updateProgressUI(100, 'Traitement terminé !', 'complete');
                     clearInterval(statusCheckInterval);
                     showResults(data);
                     break;
@@ -279,17 +279,17 @@ function checkProcessingStatus(fileCount) {
                 case 'error':
                     uploadStatus = 'error';
                     updateProgressUI(0, '', 'error');
-                    showAlert(`Error: ${data.error || 'An unknown error occurred'}`, 'danger');
+                    showAlert(`Erreur : ${data.error || 'Une erreur inconnue est survenue'}`, 'danger');
                     clearInterval(statusCheckInterval);
                     break;
                     
                 default:
                     // Unknown status
-                    console.log('Unknown status:', data.status);
+                    console.log('Statut inconnu :', data.status);
             }
         })
         .catch(error => {
-            console.error('Error checking status:', error);
+            console.error('Erreur lors de la vérification du statut :', error);
             // Don't stop checking on a temporary error
         });
 }
@@ -329,16 +329,16 @@ function updateProgressUI(percent, statusText, step) {
 
 function showResults(data) {
     // Show success message
-    showAlert('Files have been successfully processed!', 'success');
+    showAlert('Les fichiers ont été traités avec succès !', 'success');
     
     // Create the result card
     resultContainer.innerHTML = `
         <div class="card success-card">
             <div class="card-header">
-                <h5 class="card-title"><i class="fas fa-check-circle text-success me-2"></i>Processing Complete</h5>
+                <h5 class="card-title"><i class="fas fa-check-circle text-success me-2"></i>Traitement Terminé</h5>
             </div>
             <div class="card-body">
-                <p>Your files have been successfully processed.</p>
+                <p>Vos fichiers ont été traités avec succès.</p>
                 
                 <div class="result-stats mb-3">
                     <div class="row">
@@ -348,7 +348,7 @@ function showResults(data) {
                                     <i class="fas fa-file-alt fa-2x text-success"></i>
                                 </div>
                                 <div>
-                                    <div class="fw-bold">Processed Files</div>
+                                    <div class="fw-bold">Fichiers Traités</div>
                                     <div>${data.processed_files || 0}</div>
                                 </div>
                             </div>
@@ -359,7 +359,7 @@ function showResults(data) {
                                     <i class="fas fa-exclamation-triangle fa-2x ${data.failed_files > 0 ? 'text-warning' : 'text-secondary'}"></i>
                                 </div>
                                 <div>
-                                    <div class="fw-bold">Failed Files</div>
+                                    <div class="fw-bold">Fichiers Échoués</div>
                                     <div>${data.failed_files || 0}</div>
                                 </div>
                             </div>
@@ -369,10 +369,10 @@ function showResults(data) {
                 
                 ${data.failed_files > 0 ? `
                 <div class="alert alert-warning">
-                    <strong>Note:</strong> Some files could not be processed. They have been skipped in the merged document.
+                    <strong>Remarque :</strong> Certains fichiers n'ont pas pu être traités. Ils ont été ignorés dans le document fusionné.
                     <div class="mt-2">
                         <button class="btn btn-sm btn-outline-warning" type="button" data-bs-toggle="collapse" data-bs-target="#failedFilesList">
-                            Show Failed Files
+                            Afficher les fichiers échoués
                         </button>
                     </div>
                     <div class="collapse mt-2" id="failedFilesList">
@@ -390,10 +390,10 @@ function showResults(data) {
                         <div class="card">
                             <div class="card-body text-center">
                                 <i class="fas fa-file-word fa-3x text-primary mb-3"></i>
-                                <h5 class="card-title">Merged DOCX</h5>
-                                <p class="card-text">Download the merged Word document</p>
+                                <h5 class="card-title">DOCX Fusionné</h5>
+                                <p class="card-text">Téléchargez le document Word fusionné</p>
                                 <a href="/download/docx" class="btn btn-primary download-button">
-                                    <i class="fas fa-download me-2"></i>Download DOCX
+                                    <i class="fas fa-download me-2"></i>Télécharger DOCX
                                 </a>
                             </div>
                         </div>
@@ -402,12 +402,12 @@ function showResults(data) {
                         <div class="card">
                             <div class="card-body text-center">
                                 <i class="fas fa-file-pdf fa-3x text-danger mb-3"></i>
-                                <h5 class="card-title">Merged PDF</h5>
-                                <p class="card-text">Download the converted PDF document</p>
+                                <h5 class="card-title">PDF Fusionné</h5>
+                                <p class="card-text">Téléchargez le document PDF converti</p>
                                 <a href="/download/pdf" class="btn btn-danger download-button" ${!data.pdf_conversion_success ? 'disabled' : ''}>
-                                    <i class="fas fa-download me-2"></i>Download PDF
+                                    <i class="fas fa-download me-2"></i>Télécharger PDF
                                 </a>
-                                ${!data.pdf_conversion_success ? '<p class="text-muted mt-2 small">PDF conversion was not available</p>' : ''}
+                                ${!data.pdf_conversion_success ? '<p class="text-muted mt-2 small">La conversion PDF n\'était pas disponible</p>' : ''}
                             </div>
                         </div>
                     </div>
@@ -415,7 +415,7 @@ function showResults(data) {
                 
                 <div class="text-center mt-4">
                     <button id="reset-button" class="btn btn-secondary">
-                        <i class="fas fa-redo me-2"></i>Process Another File
+                        <i class="fas fa-redo me-2"></i>Traiter un autre fichier
                     </button>
                 </div>
             </div>
@@ -433,14 +433,15 @@ function resetApplication() {
     // Reset the form
     uploadForm.reset();
     
-    // Reset UI elements
+    // Clear file info
     document.getElementById('file-info').classList.add('d-none');
-    document.getElementById('upload-button').disabled = true;
+    
+    // Reset progress
     progressBar.style.width = '0%';
     progressBar.setAttribute('aria-valuenow', 0);
     progressStatus.textContent = '';
     
-    // Reset step indicators
+    // Reset steps
     uploadStep.classList.remove('step-active', 'step-complete');
     processStep.classList.remove('step-active', 'step-complete');
     completeStep.classList.remove('step-active', 'step-complete');
@@ -451,14 +452,17 @@ function resetApplication() {
     // Reset status
     uploadStatus = 'idle';
     
-    // Clear any status check interval
+    // Clear any intervals
     if (statusCheckInterval) {
         clearInterval(statusCheckInterval);
         statusCheckInterval = null;
     }
     
-    // Clear alerts
-    alertContainer.innerHTML = '';
+    // Disable upload button
+    document.getElementById('upload-button').disabled = true;
+    
+    // Show message
+    showAlert('Prêt pour un nouveau traitement.', 'info');
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
