@@ -1,0 +1,136 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        {% if error %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+        
+        <div id="alert-container"></div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title"><i class="fas fa-file-medical me-2"></i>Medical Records Processor</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    This tool processes a ZIP archive containing medical records (.doc or .docx files), 
+                    merges them into a single document, and converts it to PDF.
+                </p>
+                
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>How it works:</h6>
+                    <ol>
+                        <li>Upload a ZIP file containing .doc or .docx medical records</li>
+                        <li>The system will extract and merge all records into a single document</li>
+                        <li>Each record will be separated by a header line with the filename</li>
+                        <li>Download the merged document in DOCX and PDF formats</li>
+                    </ol>
+                </div>
+                
+                <!-- Steps Indicator -->
+                <div class="step-indicator mb-4">
+                    <div id="upload-step" class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-label">Upload</div>
+                    </div>
+                    <div id="process-step" class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-label">Process</div>
+                    </div>
+                    <div id="complete-step" class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Complete</div>
+                    </div>
+                </div>
+                
+                <!-- File Upload Form -->
+                <form id="upload-form">
+                    <div id="drop-zone" class="drop-zone mb-3">
+                        <div class="file-icon">
+                            <i class="fas fa-file-archive"></i>
+                        </div>
+                        <p class="mb-2">Drag and drop your ZIP file here</p>
+                        <p class="text-muted">or</p>
+                        <button type="button" class="btn btn-secondary">
+                            <i class="fas fa-folder-open me-2"></i>Browse Files
+                        </button>
+                        <input type="file" id="file-input" class="d-none" accept=".zip">
+                    </div>
+                    
+                    <div id="file-info" class="alert alert-secondary d-none">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-file-archive fa-2x"></i>
+                            </div>
+                            <div>
+                                <div id="file-name" class="fw-bold"></div>
+                                <div id="file-size" class="text-muted"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span id="progress-status"></span>
+                            <span id="progress-percentage"></span>
+                        </div>
+                        <div class="progress" style="height: 20px;">
+                            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="submit" id="upload-button" class="btn btn-primary" disabled>
+                            <i class="fas fa-upload me-2"></i>Upload and Process
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Results will be displayed here -->
+        <div id="result-container"></div>
+        
+        <!-- Usage Information -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title"><i class="fas fa-question-circle me-2"></i>Instructions</h5>
+            </div>
+            <div class="card-body">
+                <h6>Preparing Your ZIP File</h6>
+                <p>The ZIP file should contain medical record documents in .doc or .docx format. The system will:</p>
+                <ul>
+                    <li>Extract all .doc and .docx files (ignoring other file types)</li>
+                    <li>Merge the contents into a single document</li>
+                    <li>Add a separator line before each document's content with the format:<br>
+                        <code>&lt;FILENAME.extension&gt;........................................................................................................</code>
+                    </li>
+                    <li>Generate both .docx and .pdf versions of the merged document</li>
+                </ul>
+                
+                <div class="alert alert-warning">
+                    <strong>Important:</strong> For large archives with many files (5,000+), processing may take several minutes.
+                </div>
+                
+                <h6>After Processing</h6>
+                <p>Once processing is complete, you'll be able to download:</p>
+                <ul>
+                    <li>A merged .docx file containing all records</li>
+                    <li>A .pdf version of the merged document</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+{% endblock %}

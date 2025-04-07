@@ -1,0 +1,110 @@
+/* Custom CSS styles */
+
+.drop-zone {
+    border: 2px dashed var(--bs-secondary);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+    transition: border-color 0.3s ease;
+    background-color: rgba(33, 37, 41, 0.1);
+}
+
+.drop-zone:hover {
+    border-color: var(--bs-primary);
+    background-color: rgba(33, 37, 41, 0.2);
+}
+
+.drop-zone.drag-over {
+    border-color: var(--bs-primary);
+    background-color: rgba(33, 37, 41, 0.3);
+}
+
+.progress-container {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.file-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--bs-secondary);
+}
+
+.step-container {
+    position: relative;
+    padding-bottom: 1rem;
+}
+
+.step-indicator {
+    display: flex;
+    margin-bottom: 2rem;
+}
+
+.step {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem;
+    position: relative;
+}
+
+.step::after {
+    content: '';
+    position: absolute;
+    top: 2rem;
+    right: 0;
+    width: 100%;
+    height: 3px;
+    background-color: var(--bs-secondary);
+    z-index: 1;
+}
+
+.step:last-child::after {
+    display: none;
+}
+
+.step-number {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background-color: var(--bs-secondary);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 0.5rem;
+    position: relative;
+    z-index: 2;
+}
+
+.step-active .step-number {
+    background-color: var(--bs-primary);
+}
+
+.step-complete .step-number {
+    background-color: var(--bs-success);
+}
+
+.error-card {
+    border-left: 4px solid var(--bs-danger);
+}
+
+.success-card {
+    border-left: 4px solid var(--bs-success);
+}
+
+.result-container {
+    margin-top: 2rem;
+}
+
+.download-button {
+    margin-top: 0.5rem;
+}
+
+.card {
+    margin-bottom: 1.5rem;
+}
+
+.failed-files-container {
+    max-height: 200px;
+    overflow-y: auto;
+}
