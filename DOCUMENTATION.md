@@ -1,108 +1,101 @@
-# Documentation: DocxFilesMerger CLI
+# Documentation de DocxFilesMerger
 
-## Présentation
+## Vue d'ensemble
 
-DocxFilesMerger CLI est un outil en ligne de commande conçu pour simplifier le traitement des documents médicaux au format DOC/DOCX contenus dans des archives ZIP. Il permet d'automatiser plusieurs tâches courantes:
+DocxFilesMerger est un outil en ligne de commande pour traiter des documents médicaux à partir d'archives ZIP. L'outil permet d'extraire, convertir, et fusionner des fichiers DOC et DOCX, puis de générer un PDF du document fusionné.
 
-1. Extraire tous les documents DOC/DOCX d'une archive ZIP
-2. Convertir les fichiers DOC au format DOCX si nécessaire
-3. Fusionner tous les documents en un seul fichier DOCX unifié
-4. Créer une version PDF du document fusionné
+## Architecture
 
-## Utilisation
+L'application est structurée autour de plusieurs modules:
 
-### Commande de base
+- `docx_files_merger.py`: Module principal de traitement des documents
+- `docx_merger_cli.py`: Interface en ligne de commande améliorée
+- `exemple_utilisation.py`: Exemples d'utilisation comme bibliothèque
 
-```bash
-python docx_files_merger.py chemin/vers/archive.zip
-```
+## Fonctionnalités détaillées
 
-Par défaut, les fichiers générés seront placés dans un dossier `./output`.
+### Extraction de fichiers
 
-### Options disponibles
+L'outil extrait automatiquement tous les fichiers DOC et DOCX d'une archive ZIP, y compris ceux situés dans des sous-dossiers. Les fichiers sont extraits dans un dossier temporaire pour le traitement.
 
-```bash
-python docx_files_merger.py chemin/vers/archive.zip [options]
-```
+### Conversion DOC vers DOCX
 
-- `-o, --output-dir DOSSIER` : Spécifie le dossier de sortie (par défaut: `./output`)
-- `-q, --quiet` : Mode silencieux, sans affichage des barres de progression
-- `-h, --help` : Affiche l'aide et les informations d'utilisation
+Pour les fichiers au format DOC (ancienne version de Microsoft Word), l'outil tente plusieurs méthodes de conversion:
 
-### Exemples
+1. LibreOffice (si installé)
+2. Création d'un document de remplacement basique si la conversion n'est pas possible
 
-```bash
-# Traitement basique
-python docx_files_merger.py dossiers_medicaux.zip
+### Fusion de documents
 
-# Spécifier un dossier de sortie
-python docx_files_merger.py dossiers_medicaux.zip -o ./resultats_patient
+L'outil fusionne tous les fichiers DOCX en un seul document avec:
 
-# Mode silencieux
-python docx_files_merger.py dossiers_medicaux.zip -q
-```
+- Une page de titre
+- Une table des matières
+- Des séparateurs entre chaque document
+- Des en-têtes indiquant le nom du fichier d'origine
 
-## Utilisation comme bibliothèque Python
+### Conversion en PDF
 
-DocxFilesMerger peut également être utilisé comme module dans vos propres scripts Python:
+Le document fusionné est converti en PDF selon plusieurs méthodes possibles:
 
-```python
-from docx_files_merger import process_zip_file
+1. LibreOffice (méthode préférée)
+2. Bibliothèque docx2pdf
+3. Bibliothèque reportlab pour une version de base
 
-# Traiter une archive ZIP
-docx_path, pdf_path = process_zip_file("archive.zip", "./resultats")
+## Utilisation en ligne de commande
 
-print(f"Document DOCX généré: {docx_path}")
-print(f"Document PDF généré: {pdf_path}")
-```
+### Options avancées
 
-## Structure des fichiers générés
+- Génération de rapports: L'option `-r, --rapport` permet de générer un rapport CSV détaillé des résultats
+- Mode batch: L'option `-d, --dossier` permet de traiter un dossier entier de fichiers ZIP
+- Mode silencieux: L'option `-q, --quiet` désactive l'affichage des barres de progression
 
-Lors du traitement d'une archive ZIP `archive.zip`, l'outil créera la structure suivante:
+### Codes de retour
 
-```
-output/                    # Dossier de sortie principal
-├── extracted/             # Contient les fichiers extraits
-│   ├── document1.docx
-│   ├── document2.docx
-│   └── ...
-├── merged.docx            # Document DOCX fusionné
-└── merged.pdf             # Version PDF du document fusionné
-```
+- `0`: Succès (au moins un fichier traité avec succès)
+- `1`: Échec (aucun fichier traité avec succès ou erreur)
 
-## Résolution des problèmes
+## Utilisation comme bibliothèque
 
-### Erreur: "Aucun fichier DOC/DOCX trouvé dans l'archive"
-
-Vérifiez que votre archive ZIP contient bien des fichiers avec les extensions `.doc` ou `.docx`. L'outil ignore les autres types de fichiers.
-
-### Erreur lors de la conversion PDF
-
-La conversion en PDF peut utiliser trois méthodes différentes, en fonction des outils disponibles:
-
-1. LibreOffice (méthode recommandée pour la meilleure qualité)
-2. Bibliothèque docx2pdf 
-3. Conversion basique avec reportlab
-
-Si le fichier PDF généré est de qualité insuffisante, envisagez d'installer LibreOffice sur votre système.
-
-## Traitements par lots
-
-Pour traiter plusieurs archives ZIP en une seule opération, consultez l'exemple dans le fichier `exemple_utilisation.py`:
+### Exemple d'importation
 
 ```python
-from docx_files_merger import process_zip_file
-import os
-import glob
-
-# Traiter tous les fichiers ZIP d'un dossier
-zip_files = glob.glob("./dossier_archives/*.zip")
-for zip_file in zip_files:
-    base_name = os.path.basename(zip_file).split('.')[0]
-    output_dir = f"./resultats/{base_name}"
-    process_zip_file(zip_file, output_dir)
+from docx_merger_cli import traiter_fichier, traiter_dossier
 ```
+
+### Structure des résultats
+
+Les fonctions `traiter_fichier` et `traiter_dossier` retournent des structures de données contenant:
+
+- `statut`: 'succès', 'partiel', ou 'erreur'
+- `message`: Description du résultat
+- `temps`: Temps de traitement en secondes
+- `docx`: Chemin vers le fichier DOCX généré
+- `pdf`: Chemin vers le fichier PDF généré
+
+## Dépendances
+
+### Requises
+- python-docx
+- reportlab
+
+### Optionnelles
+- tqdm (pour les barres de progression)
+- docx2pdf (pour une meilleure conversion en PDF)
+- LibreOffice (pour une conversion optimale)
+
+## Résolution de problèmes
+
+### Conversion DOC vers DOCX échoue
+- Vérifiez que LibreOffice est installé
+- Pour les fichiers complexes, utilisez une conversion manuelle
+
+### Conversion en PDF échoue
+- Assurez-vous que au moins une des méthodes de conversion est disponible
+- Vérifiez les permissions des dossiers de sortie
 
 ---
 
-Pour une documentation technique plus complète, consultez le fichier `DOCUMENTATION_COMPLETE.md`.
+Développé par MOA Digital Agency LLC (https://myoneart.com)  
+Email: moa@myoneart.com  
+Copyright © 2025 MOA Digital Agency LLC.

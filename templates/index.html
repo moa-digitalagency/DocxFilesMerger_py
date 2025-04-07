@@ -1,10 +1,12 @@
 {#
-  DocxFilesMerger - Application de traitement et fusion de documents.
+  DocxFilesMerger CLI - Application de traitement et fusion de documents.
   Développé par MOA Digital Agency LLC (https://myoneart.com)
   Email: moa@myoneart.com
   Copyright © 2025 MOA Digital Agency LLC. Tous droits réservés.
 #}
 {% extends "layout.html" %}
+
+{% block title %}DocxFilesMerger CLI - Fusionner des fichiers DOCX{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -16,127 +18,121 @@
         </div>
         {% endif %}
         
-        <div id="alert-container"></div>
-        
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="card-title"><i class="fas fa-file-medical me-2"></i>Traitement de Dossiers Médicaux</h5>
+                <h5 class="card-title"><i class="fas fa-terminal me-2"></i>DocxFilesMerger CLI</h5>
             </div>
             <div class="card-body">
-                <p class="card-text">
-                    Cet outil traite une archive ZIP contenant des dossiers médicaux (fichiers .doc ou .docx),
-                    les fusionne en un seul document et le convertit en PDF.
-                </p>
-                
                 <div class="alert alert-info">
-                    <h6><i class="fas fa-info-circle me-2"></i>Comment ça fonctionne :</h6>
-                    <ol>
-                        <li>Téléversez un fichier ZIP contenant des dossiers médicaux (.doc ou .docx)</li>
-                        <li>Le système extraira et fusionnera tous les dossiers en un seul document</li>
-                        <li>Chaque dossier sera séparé par une ligne d'en-tête avec le nom du fichier</li>
-                        <li>Téléchargez le document fusionné aux formats DOCX et PDF</li>
-                    </ol>
+                    <h6><i class="fas fa-info-circle me-2"></i>Nouvelle version en ligne de commande</h6>
+                    <p>DocxFilesMerger est maintenant disponible en version ligne de commande (CLI) !<br>
+                    Cette interface simplifiée vous permet de lancer une démonstration ou d'obtenir des informations sur l'utilisation du script en mode terminal.</p>
                 </div>
                 
-                <!-- Steps Indicator -->
-                <div class="step-indicator mb-4">
-                    <div id="upload-step" class="step">
-                        <div class="step-number">1</div>
-                        <div class="step-label">Téléverser</div>
-                    </div>
-                    <div id="process-step" class="step">
-                        <div class="step-number">2</div>
-                        <div class="step-label">Traiter</div>
-                    </div>
-                    <div id="complete-step" class="step">
-                        <div class="step-number">3</div>
-                        <div class="step-label">Terminer</div>
-                    </div>
+                <div class="text-center my-4">
+                    <a href="{{ url_for('run_demo') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-play-circle me-2"></i>Lancer la démonstration
+                    </a>
                 </div>
-                
-                <!-- File Upload Form -->
-                <form id="upload-form">
-                    <div id="drop-zone" class="drop-zone mb-3">
-                        <div class="file-icon">
-                            <i class="fas fa-file-archive"></i>
-                        </div>
-                        <p class="mb-2">Glissez et déposez votre fichier ZIP ici</p>
-                        <p class="text-muted">ou</p>
-                        <button type="button" class="btn btn-secondary">
-                            <i class="fas fa-folder-open me-2"></i>Parcourir les fichiers
-                        </button>
-                        <input type="file" id="file-input" class="d-none" accept=".zip">
-                    </div>
-                    
-                    <div id="file-info" class="alert alert-secondary d-none">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <i class="fas fa-file-archive fa-2x"></i>
-                            </div>
-                            <div>
-                                <div id="file-name" class="fw-bold"></div>
-                                <div id="file-size" class="text-muted"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="progress-container">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span id="progress-status"></span>
-                            <span id="progress-percentage"></span>
-                        </div>
-                        <div class="progress" style="height: 20px;">
-                            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
-                                role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="text-center">
-                        <button type="submit" id="upload-button" class="btn btn-primary" disabled>
-                            <i class="fas fa-upload me-2"></i>Téléverser et Traiter
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
         
-        <!-- Results will be displayed here -->
-        <div id="result-container"></div>
-        
-        <!-- Usage Information -->
+        <!-- CLI Usage Information -->
         <div class="card mt-4">
             <div class="card-header">
-                <h5 class="card-title"><i class="fas fa-question-circle me-2"></i>Instructions</h5>
+                <h5 class="card-title"><i class="fas fa-code me-2"></i>Utilisation en ligne de commande</h5>
             </div>
             <div class="card-body">
-                <h6>Préparation de votre fichier ZIP</h6>
-                <p>Le fichier ZIP doit contenir des documents de dossiers médicaux au format .doc ou .docx. Le système va :</p>
+                <h6>Syntaxe de base</h6>
+                <div class="bg-light p-3 mb-3 border rounded">
+                    <code>python docx_merger_cli.py [options]</code>
+                </div>
+                
+                <h6>Options disponibles</h6>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Option</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>-f, --fichier FICHIER</code></td>
+                            <td>Traiter un seul fichier ZIP</td>
+                        </tr>
+                        <tr>
+                            <td><code>-d, --dossier DOSSIER</code></td>
+                            <td>Traiter tous les fichiers ZIP d'un dossier</td>
+                        </tr>
+                        <tr>
+                            <td><code>-o, --output DOSSIER</code></td>
+                            <td>Dossier de sortie pour les résultats</td>
+                        </tr>
+                        <tr>
+                            <td><code>-q, --quiet</code></td>
+                            <td>Mode silencieux (sans affichage de progression)</td>
+                        </tr>
+                        <tr>
+                            <td><code>-r, --rapport FICHIER</code></td>
+                            <td>Générer un rapport CSV des résultats</td>
+                        </tr>
+                        <tr>
+                            <td><code>-h, --help</code></td>
+                            <td>Afficher l'aide complète</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h6>Exemples d'utilisation</h6>
+                <div class="bg-light p-3 mb-3 border rounded">
+                    <p><code># Traiter un seul fichier ZIP</code></p>
+                    <code>python docx_merger_cli.py -f archive.zip -o ./resultats</code>
+                    
+                    <p class="mt-3"><code># Traiter tous les fichiers ZIP d'un dossier</code></p>
+                    <code>python docx_merger_cli.py -d ./dossier_archives -o ./resultats -r rapport.csv</code>
+                    
+                    <p class="mt-3"><code># Mode silencieux (sans affichage de progression)</code></p>
+                    <code>python docx_merger_cli.py -f archive.zip -o ./resultats -q</code>
+                </div>
+                
+                <div class="alert alert-success">
+                    <strong>Astuce :</strong> Pour obtenir de l'aide à tout moment, exécutez :
+                    <div class="bg-light p-2 mt-2 border rounded">
+                        <code>python docx_merger_cli.py --help</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Functionality Information -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title"><i class="fas fa-question-circle me-2"></i>Fonctionnalités</h5>
+            </div>
+            <div class="card-body">
+                <p>Le système traite une archive ZIP contenant des documents (.doc ou .docx) et effectue les opérations suivantes :</p>
                 <ul>
-                    <li>Extraire tous les fichiers .doc et .docx (en ignorant les autres types de fichiers)</li>
-                    <li>Fusionner le contenu en un seul document</li>
-                    <li>Ajouter une ligne de séparation avant le contenu de chaque document au format :<br>
-                        <code>&lt;NOMFICHIER.extension&gt;........................................................................................................</code>
-                    </li>
-                    <li>Générer les versions .docx et .pdf du document fusionné</li>
+                    <li>Extraction de tous les fichiers .doc et .docx</li>
+                    <li>Conversion automatique des .doc en .docx si nécessaire</li>
+                    <li>Fusion de tous les documents en un seul fichier .docx</li>
+                    <li>Génération d'une version PDF du document fusionné</li>
+                    <li>Organisation des documents par ordre alphabétique</li>
                 </ul>
                 
                 <div class="alert alert-warning">
                     <strong>Important :</strong> Pour les grandes archives contenant de nombreux fichiers (5 000+), le traitement peut prendre plusieurs minutes.
                 </div>
                 
-                <h6>Après le traitement</h6>
-                <p>Une fois le traitement terminé, vous pourrez télécharger :</p>
+                <h6>Résultats du traitement</h6>
+                <p>Après le traitement, vous obtiendrez :</p>
                 <ul>
-                    <li>Un fichier .docx fusionné contenant tous les dossiers</li>
-                    <li>Une version .pdf du document fusionné</li>
+                    <li>Un document DOCX fusionné contenant tous les fichiers</li>
+                    <li>Une version PDF du document fusionné</li>
+                    <li>Optionnellement, un rapport CSV détaillant le traitement</li>
                 </ul>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
 {% endblock %}
