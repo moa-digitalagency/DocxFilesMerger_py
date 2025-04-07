@@ -13,18 +13,32 @@ import threading
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, abort
 from utils import process_zip_file, cleanup_old_files
+from models import db, ProcessingJob, UsageStat, Config
+from datetime import datetime
 
 # Configuration de l'application
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_key_for_docxfilesmerger")
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 500  # 500 MB
 app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
 app.config['OUTPUT_FOLDER'] = os.path.join(os.getcwd(), 'outputs')
 app.config['STATUS_FOLDER'] = os.path.join(os.getcwd(), 'status')
 app.config['ALLOWED_EXTENSIONS'] = {'zip'}
 
+# Configuration de la base de données
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialiser la base de données
+db.init_app(app)
+
 # Créer les dossiers nécessaires s'ils n'existent pas
 for folder in [app.config['UPLOAD_FOLDER'], app.config['OUTPUT_FOLDER'], app.config['STATUS_FOLDER']]:
     os.makedirs(folder, exist_ok=True)
+    
+# Création des tables de la base de données si elles n'existent pas
+with app.app_context():
+    db.create_all()
 
 # Vérification des extensions de fichiers autorisées
 def allowed_file(filename):
@@ -66,12 +80,12 @@ def upload_file():
         # Sécuriser le nom du fichier et créer un identifiant unique
         filename = secure_filename(file.filename)
         timestamp = int(time.time())
-        unique_folder = f"{timestamp}_{os.urandom(4).hex()}"
+        unique_id = f"{timestamp}_{os.urandom(4).hex()}"
         
         # Créer un dossier spécifique pour cette session
-        session_folder = os.path.join(app.config['UPLOAD_FOLDER'], unique_folder)
-        output_folder = os.path.join(app.config['OUTPUT_FOLDER'], unique_folder)
-        status_folder = os.path.join(app.config['STATUS_FOLDER'], unique_folder)
+        session_folder = os.path.join(app.config['UPLOAD_FOLDER'], unique_id)
+        output_folder = os.path.join(app.config['OUTPUT_FOLDER'], unique_id)
+        status_folder = os.path.join(app.config['STATUS_FOLDER'], unique_id)
         
         os.makedirs(session_folder, exist_ok=True)
         os.makedirs(output_folder, exist_ok=True)
@@ -95,6 +109,17 @@ def upload_file():
         
         # Estimer le nombre de fichiers (pour l'interface utilisateur)
         file_count = 20  # Valeur par défaut
+        
+        # Créer un enregistrement dans la base de données
+        with app.app_context():
+            job = ProcessingJob(
+                job_id=unique_id,
+                status='uploaded',
+                file_count=file_count,
+                original_filename=filename
+            )
+            db.session.add(job)
+            db.session.commit()
         
         return jsonify({
             'success': True,
@@ -121,16 +146,22 @@ def process_file():
         return jsonify({'success': False, 'error': 'Le fichier ZIP n\'existe pas.'}), 404
     
     # Obtenir le dossier unique
-    unique_folder = os.path.dirname(zip_path).split(os.path.sep)[-1]
-    output_folder = os.path.join(app.config['OUTPUT_FOLDER'], unique_folder)
-    status_folder = os.path.join(app.config['STATUS_FOLDER'], unique_folder)
+    unique_id = os.path.dirname(zip_path).split(os.path.sep)[-1]
+    output_folder = os.path.join(app.config['OUTPUT_FOLDER'], unique_id)
+    status_folder = os.path.join(app.config['STATUS_FOLDER'], unique_id)
     
     try:
+        # Mettre à jour l'état du job dans la base de données
+        job = ProcessingJob.query.filter_by(job_id=unique_id).first()
+        if job:
+            job.status = 'processing'
+            db.session.commit()
+        
         # Lancer le traitement dans un thread séparé
         process_thread = threading.Thread(
             target=process_zip_file,
             args=(zip_path, output_folder),
-            kwargs={'status_dir': status_folder}
+            kwargs={'status_dir': status_folder, 'job_id': unique_id}
         )
         process_thread.daemon = True
         process_thread.start()
@@ -148,6 +179,15 @@ def process_file():
                 'complete': False,
                 'error': str(e)
             }, f)
+        
+        # Mettre à jour le statut d'erreur dans la base de données
+        try:
+            job = ProcessingJob.query.filter_by(job_id=unique_id).first()
+            if job:
+                job.status = 'error'
+                db.session.commit()
+        except Exception as db_err:
+            print(f"Erreur lors de la mise à jour du statut dans la base de données: {str(db_err)}")
         
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -218,6 +258,53 @@ def show_readme():
     # Ici, on pourrait convertir le Markdown en HTML pour un affichage plus élégant
     # Pour l'instant, on redirige simplement vers la page d'accueil
     return redirect(url_for('index'))
+
+# Interface d'administration
+@app.route('/admin')
+def admin_dashboard():
+    """Page d'administration avec statistiques et configuration"""
+    # Récupérer les statistiques globales
+    total_jobs = ProcessingJob.query.count()
+    total_files = db.session.query(db.func.sum(ProcessingJob.file_count)).scalar() or 0
+    avg_time = db.session.query(db.func.avg(ProcessingJob.processing_time)).scalar() or 0
+    
+    # Préparer les statistiques pour le template
+    stats = {
+        'total_jobs': total_jobs,
+        'total_files': total_files,
+        'avg_time': int(avg_time)
+    }
+    
+    # Récupérer les jobs récents
+    recent_jobs = ProcessingJob.query.order_by(ProcessingJob.created_at.desc()).limit(10).all()
+    
+    # Récupérer les statistiques par jour
+    daily_stats = UsageStat.query.order_by(UsageStat.date.desc()).limit(7).all()
+    
+    # Récupérer les configurations
+    configs = Config.query.all()
+    
+    return render_template('admin.html', 
+                          stats=stats, 
+                          recent_jobs=recent_jobs, 
+                          daily_stats=daily_stats,
+                          configs=configs)
+
+# Mise à jour de la configuration
+@app.route('/admin/config', methods=['POST'])
+def update_config():
+    """Mettre à jour les paramètres de configuration"""
+    try:
+        for key, value in request.form.items():
+            config = Config.query.filter_by(key=key).first()
+            if config:
+                config.value = value
+                db.session.commit()
+        
+        return redirect(url_for('admin_dashboard'))
+    except Exception as e:
+        return render_template('error.html', error_code=500, 
+                              error_message=f"Erreur lors de la mise à jour de la configuration: {str(e)}"), 500
 
 # Gestionnaire d'erreur 404
 @app.errorhandler(404)

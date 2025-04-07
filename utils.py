@@ -1,55 +1,68 @@
-"""
-DocxFilesMerger - Application de traitement et fusion de documents.
-Développé par MOA Digital Agency LLC (https://myoneart.com)
-Email: moa@myoneart.com
-Copyright © 2025 MOA Digital Agency LLC. Tous droits réservés.
-"""
-
 import os
+import shutil
+import zipfile
 import json
 import time
-import zipfile
 import threading
-import shutil
-import tempfile
-import glob
-from docx import Document
 import traceback
 from datetime import datetime, timedelta
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+# Import des bibliothèques de traitement de documents
+try:
+    import docx
+    from docx import Document
+except ImportError:
+    print("Bibliothèque python-docx non installée. Certaines fonctionnalités peuvent ne pas fonctionner correctement.")
 
 def save_status(status_dir, status_data):
     """Save processing status to a JSON file"""
+    if not status_dir:
+        return
+
+    os.makedirs(status_dir, exist_ok=True)
+    status_file = os.path.join(status_dir, 'status.json')
+    
     try:
-        status_file = os.path.join(status_dir, 'status.json')
         with open(status_file, 'w') as f:
             json.dump(status_data, f)
     except Exception as e:
-        print(f"Error saving status: {str(e)}")
+        print(f"Erreur lors de la sauvegarde du statut: {str(e)}")
 
 def extract_doc_files(zip_path, extract_dir):
     """Extract all .doc and .docx files from a zip file"""
-    doc_files = []
+    # Créer le dossier d'extraction s'il n'existe pas
+    os.makedirs(extract_dir, exist_ok=True)
     
+    # Liste pour stocker les chemins vers les fichiers extraits
+    extracted_files = []
+    
+    # Ouvrir le fichier ZIP
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        # List all files in the ZIP
-        all_files = zip_ref.namelist()
-        
-        # Filter for .doc and .docx files
-        doc_files_in_zip = [f for f in all_files if f.lower().endswith(('.doc', '.docx'))]
-        
-        # Extract only document files
-        for file in doc_files_in_zip:
-            # Create necessary directories
-            file_path = os.path.join(extract_dir, file)
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        # Parcourir tous les fichiers dans le ZIP
+        for file_info in zip_ref.infolist():
+            # Ignorer les dossiers
+            if file_info.filename.endswith('/'):
+                continue
             
-            # Extract file
-            with zip_ref.open(file) as source, open(file_path, 'wb') as target:
-                shutil.copyfileobj(source, target)
-            
-            doc_files.append(file_path)
+            # Vérifier si le fichier est un .doc ou .docx
+            if file_info.filename.lower().endswith(('.doc', '.docx')):
+                # Extraire uniquement le nom du fichier sans les dossiers
+                filename = os.path.basename(file_info.filename)
+                # Créer un chemin de destination
+                dest_path = os.path.join(extract_dir, filename)
+                
+                # Extraire le fichier
+                with zip_ref.open(file_info) as source, open(dest_path, 'wb') as dest:
+                    shutil.copyfileobj(source, dest)
+                
+                # Ajouter le chemin à la liste
+                extracted_files.append(dest_path)
     
-    return doc_files
+    return extracted_files
 
 def convert_doc_to_docx(doc_path, output_dir):
     """
@@ -58,48 +71,61 @@ def convert_doc_to_docx(doc_path, output_dir):
     This function attempts to use LibreOffice for conversion if available,
     falling back to a basic document creation method if not
     """
-    if not doc_path.lower().endswith('.doc'):
-        return doc_path  # Already a .docx or other format
-    
-    filename = os.path.basename(doc_path)
-    name_without_ext = os.path.splitext(filename)[0]
-    output_path = os.path.join(output_dir, f"{name_without_ext}.docx")
-    
     try:
-        # Try to use LibreOffice (if installed)
-        libreoffice_path = shutil.which('libreoffice')
-        if libreoffice_path:
-            os.system(f'"{libreoffice_path}" --headless --convert-to docx --outdir "{output_dir}" "{doc_path}"')
-            
-            if os.path.exists(output_path):
-                return output_path
+        # Créer une instance de Document pour vérifier le chargement
+        document = Document(doc_path)
         
-        # Try to use docx2pdf's converter (which can sometimes convert doc to docx)
-        try:
-            from docx2pdf import convert
-            convert(doc_path, output_path)
-            if os.path.exists(output_path):
-                return output_path
-        except:
-            pass
+        # Si ça fonctionne, simplement sauvegarder en .docx
+        filename = os.path.basename(doc_path)
+        name_without_ext = os.path.splitext(filename)[0]
+        docx_path = os.path.join(output_dir, f"{name_without_ext}.docx")
         
-        # Fallback: Create a new .docx document with a message
-        doc = Document()
-        doc.add_paragraph(f"Impossible de convertir le document '{filename}'. Le format .doc original n'est pas entièrement pris en charge.")
-        doc.save(output_path)
-        return output_path
+        document.save(docx_path)
+        return docx_path
         
     except Exception as e:
-        print(f"Error converting {doc_path} to .docx: {str(e)}")
+        print(f"Échec de la conversion directe de {doc_path}: {str(e)}")
         
-        # Create an error document as a last resort
         try:
-            doc = Document()
-            doc.add_paragraph(f"Erreur lors de la conversion du document '{filename}': {str(e)}")
-            doc.save(output_path)
-            return output_path
-        except:
-            return doc_path  # Just return the original in case of severe failure
+            # Essayer de convertir avec LibreOffice si disponible
+            # LibreOffice doit être installé sur le système
+            filename = os.path.basename(doc_path)
+            name_without_ext = os.path.splitext(filename)[0]
+            docx_path = os.path.join(output_dir, f"{name_without_ext}.docx")
+            
+            cmd = ['libreoffice', '--headless', '--convert-to', 'docx', 
+                   '--outdir', output_dir, doc_path]
+            
+            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+            # Vérifier si le fichier a bien été créé
+            if os.path.exists(docx_path):
+                return docx_path
+            
+        except (subprocess.SubprocessError, FileNotFoundError) as e:
+            print(f"Échec de la conversion via LibreOffice: {str(e)}")
+            
+            try:
+                # Si tout échoue, créer un nouveau document avec le contenu
+                import docx2pdf
+                print("Tentative de conversion avec docx2pdf...")
+                
+                # Obtenir le chemin de sortie
+                filename = os.path.basename(doc_path)
+                name_without_ext = os.path.splitext(filename)[0]
+                docx_path = os.path.join(output_dir, f"{name_without_ext}.docx")
+                
+                # Créer un document vierge avec un message
+                doc = Document()
+                doc.add_paragraph(f"Le fichier {filename} n'a pas pu être converti automatiquement.")
+                doc.add_paragraph("Veuillez consulter le fichier original.")
+                doc.save(docx_path)
+                
+                return docx_path
+                
+            except Exception as inner_e:
+                print(f"Échec de la création d'un document de remplacement: {str(inner_e)}")
+                return None
 
 def merge_docx_files(docx_files, output_path, status_dir):
     """
@@ -108,64 +134,76 @@ def merge_docx_files(docx_files, output_path, status_dir):
     Before each file's content, a header line with the filename is added.
     Updates status periodically.
     """
-    # Create a new merged document
+    # S'assurer que nous avons des fichiers à fusionner
+    if not docx_files:
+        save_status(status_dir, {
+            'percent': 100,
+            'status_text': 'Aucun fichier à fusionner trouvé.',
+            'current_step': 'merge',
+            'complete': True,
+            'error': 'Aucun fichier DOCX trouvé'
+        })
+        return None
+    
+    # Créer un nouveau document
     merged_doc = Document()
+    
     total_files = len(docx_files)
-    processed_files = 0
     
-    for file_path in sorted(docx_files):
+    # Parcourir chaque fichier
+    for index, file_path in enumerate(docx_files):
+        # Mettre à jour le statut
+        progress = int((index / total_files) * 100)
+        save_status(status_dir, {
+            'percent': progress,
+            'status_text': f'Fusion du document {index+1}/{total_files}...',
+            'current_step': 'merge',
+            'complete': False,
+            'file_count': total_files
+        })
+        
         try:
-            # Update status (for UX)
-            processed_files += 1
-            percent_complete = int((processed_files / total_files) * 100)
-            save_status(status_dir, {
-                'percent': 50 + int(percent_complete / 2),  # 50-75% progress
-                'status_text': f'Fusion du document {processed_files}/{total_files}',
-                'current_step': 'merge',
-                'complete': False,
-                'file_count': total_files
-            })
-            
-            # Add a separator with the filename
+            # Obtenir le nom du fichier
             filename = os.path.basename(file_path)
-            merged_doc.add_paragraph(f"{'='*50}\n<{filename}>\n{'='*50}")
             
-            # Open the source document
-            try:
-                source_doc = Document(file_path)
-                
-                # Copy all paragraphs from source to merged document
-                for paragraph in source_doc.paragraphs:
-                    text = paragraph.text
-                    p = merged_doc.add_paragraph(text)
-                    
-                # Add a page break after each document except the last one
-                if processed_files < total_files:
-                    merged_doc.add_page_break()
-                    
-            except Exception as e:
-                # If we can't open a specific document, add an error message
-                merged_doc.add_paragraph(f"Impossible d'ouvrir ce document: {str(e)}")
+            # Ajouter un saut de page si ce n'est pas le premier document
+            if index > 0:
                 merged_doc.add_page_break()
-                
+            
+            # Ajouter une section d'en-tête avec le nom du fichier
+            merged_doc.add_heading(f'Document: {filename}', level=1)
+            
+            # Ouvrir le document source
+            src_doc = Document(file_path)
+            
+            # Copier tous les paragraphes
+            for paragraph in src_doc.paragraphs:
+                p = merged_doc.add_paragraph()
+                for run in paragraph.runs:
+                    p.add_run(run.text, run.style)
+            
+            # Pour les éléments plus complexes, un traitement spécifique serait nécessaire
+            # (tableaux, images, etc.)
+            
         except Exception as e:
-            print(f"Error merging file {file_path}: {str(e)}")
+            print(f"Erreur lors de la fusion du fichier {file_path}: {str(e)}")
+            # Ajouter un paragraphe d'erreur
+            merged_doc.add_paragraph(f"Erreur lors de la fusion du fichier {filename}: {str(e)}")
     
-    # Save the merged document
+    # Sauvegarder le document fusionné
     try:
         merged_doc.save(output_path)
         return output_path
     except Exception as e:
-        error_msg = f"Failed to save merged document: {str(e)}"
-        print(error_msg)
+        print(f"Erreur lors de la sauvegarde du document fusionné: {str(e)}")
         save_status(status_dir, {
-            'percent': 75,
-            'status_text': 'Erreur lors de la sauvegarde du document fusionné',
-            'current_step': 'merge',
+            'percent': 0,
+            'status_text': 'Erreur lors de la sauvegarde du document fusionné.',
+            'current_step': 'error',
             'complete': False,
-            'error': error_msg
+            'error': str(e)
         })
-        raise Exception(error_msg)
+        return None
 
 def convert_docx_to_pdf(docx_path, pdf_path, status_dir):
     """
@@ -176,140 +214,117 @@ def convert_docx_to_pdf(docx_path, pdf_path, status_dir):
     2. docx2pdf library (if installed)
     3. Basic fallback message if conversion is not possible
     """
+    if not os.path.exists(docx_path):
+        save_status(status_dir, {
+            'percent': 0,
+            'status_text': 'Le fichier DOCX à convertir n\'existe pas.',
+            'current_step': 'error',
+            'complete': False,
+            'error': 'Fichier DOCX introuvable'
+        })
+        return None
+    
     save_status(status_dir, {
-        'percent': 80,
-        'status_text': 'Conversion du document fusionné en PDF...',
+        'percent': 70,
+        'status_text': 'Conversion en PDF...',
         'current_step': 'pdf',
         'complete': False
     })
     
-    conversion_successful = False
-    error_message = ""
-    
-    # Method 1: Try LibreOffice
+    # Méthode 1: Essayer avec LibreOffice
     try:
-        libreoffice_path = shutil.which('libreoffice')
-        if libreoffice_path:
-            output_dir = os.path.dirname(pdf_path)
-            os.system(f'"{libreoffice_path}" --headless --convert-to pdf --outdir "{output_dir}" "{docx_path}"')
-            
-            # Check if the conversion was successful
-            temp_pdf_path = os.path.join(output_dir, os.path.splitext(os.path.basename(docx_path))[0] + '.pdf')
-            if os.path.exists(temp_pdf_path):
-                # Move to the desired location if needed
-                if temp_pdf_path != pdf_path:
-                    shutil.move(temp_pdf_path, pdf_path)
-                conversion_successful = True
-    except Exception as e:
-        error_message += f"LibreOffice method failed: {str(e)}\n"
+        cmd = ['libreoffice', '--headless', '--convert-to', 'pdf', 
+               '--outdir', os.path.dirname(pdf_path), docx_path]
+        
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        # LibreOffice génère le PDF avec le même nom de base que l'entrée
+        generated_pdf = os.path.splitext(docx_path)[0] + '.pdf'
+        
+        # Si le chemin de sortie est différent, renommer le fichier
+        if generated_pdf != pdf_path and os.path.exists(generated_pdf):
+            shutil.move(generated_pdf, pdf_path)
+        
+        if os.path.exists(pdf_path):
+            return pdf_path
+        
+    except (subprocess.SubprocessError, FileNotFoundError) as e:
+        print(f"Échec de la conversion PDF via LibreOffice: {str(e)}")
     
-    # Method 2: Try docx2pdf
-    if not conversion_successful:
+    # Méthode 2: Essayer avec docx2pdf
+    try:
+        import docx2pdf
+        docx2pdf.convert(docx_path, pdf_path)
+        
+        if os.path.exists(pdf_path):
+            return pdf_path
+            
+    except ImportError:
+        print("Bibliothèque docx2pdf non installée.")
+    except Exception as e:
+        print(f"Échec de la conversion PDF via docx2pdf: {str(e)}")
+    
+    # Méthode 3: Créer un PDF basique avec reportlab
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+        
+        c = canvas.Canvas(pdf_path, pagesize=letter)
+        c.setFont("Helvetica", 12)
+        
+        # Message d'information
+        c.drawString(100, 700, "Conversion automatique du document DOCX en PDF")
+        c.drawString(100, 680, "La conversion automatique n'a pas pu être effectuée.")
+        c.drawString(100, 660, "Veuillez utiliser le fichier DOCX fourni.")
+        
+        c.save()
+        
+        if os.path.exists(pdf_path):
+            return pdf_path
+            
+    except ImportError:
+        print("Bibliothèque reportlab non installée.")
+    except Exception as e:
+        print(f"Échec de la création d'un PDF basique: {str(e)}")
+    
+    # Si tout échoue, créer un fichier texte simple
+    try:
+        txt_path = os.path.splitext(pdf_path)[0] + '.txt'
+        with open(txt_path, 'w') as f:
+            f.write("ERREUR DE CONVERSION PDF\n\n")
+            f.write("La conversion automatique du document DOCX en PDF n'a pas pu être effectuée.\n")
+            f.write("Veuillez utiliser le fichier DOCX fourni ou installer les outils nécessaires (LibreOffice, docx2pdf ou reportlab).")
+        
+        # Essayer une dernière fois avec reportlab
         try:
-            from docx2pdf import convert
-            convert(docx_path, pdf_path)
+            from reportlab.lib.pagesizes import letter
+            from reportlab.pdfgen import canvas
+            
+            c = canvas.Canvas(pdf_path, pagesize=letter)
+            c.setFont("Helvetica", 12)
+            
+            with open(txt_path, 'r') as f:
+                y = 700
+                for line in f:
+                    c.drawString(100, y, line.strip())
+                    y -= 20
+            
+            c.save()
             
             if os.path.exists(pdf_path):
-                conversion_successful = True
-        except Exception as e:
-            error_message += f"docx2pdf method failed: {str(e)}\n"
-    
-    # Method 3: Try using ReportLab as fallback
-    if not conversion_successful:
-        try:
-            from reportlab.lib.pagesizes import letter
-            from reportlab.pdfgen import canvas
-            
-            document = Document(docx_path)
-            c = canvas.Canvas(pdf_path, pagesize=letter)
-            width, height = letter
-            y = height - 40
-            
-            c.setFont("Helvetica", 12)
-            c.drawString(40, height - 20, "Aperçu du document (conversion limitée)")
-            
-            # Add a note that full conversion wasn't possible
-            c.setFont("Helvetica-Bold", 14)
-            c.drawString(40, y, "Document PDF (aperçu simplifié)")
-            y -= 20
-            
-            c.setFont("Helvetica", 10)
-            c.drawString(40, y, "La conversion complète du document DOCX en PDF n'a pas été possible.")
-            y -= 12
-            c.drawString(40, y, "Veuillez télécharger le fichier DOCX pour une visualisation complète.")
-            y -= 30
-            
-            # Try to include some of the text content
-            c.setFont("Helvetica", 10)
-            for para in document.paragraphs:
-                if not para.text.strip():
-                    continue
-                    
-                text = para.text
-                # Split long lines
-                while len(text) > 0:
-                    if len(text) > 90:
-                        split_point = text.rfind(' ', 0, 90)
-                        if split_point == -1:  # No space found
-                            split_point = 90
-                        line = text[:split_point]
-                        text = text[split_point:].strip()
-                    else:
-                        line = text
-                        text = ""
-                    
-                    c.drawString(40, y, line)
-                    y -= 12
-                    
-                    # New page if needed
-                    if y < 40:
-                        c.showPage()
-                        y = height - 40
+                return pdf_path
                 
-                # Add some space between paragraphs
-                y -= 6
-                
-                # New page if needed
-                if y < 40:
-                    c.showPage()
-                    y = height - 40
+        except Exception:
+            pass
             
-            c.save()
-            conversion_successful = True
-        except Exception as e:
-            error_message += f"ReportLab method failed: {str(e)}\n"
+        return txt_path
+        
+    except Exception as e:
+        print(f"Échec de la création d'un fichier texte: {str(e)}")
     
-    # If all methods failed, create a simple PDF with error message
-    if not conversion_successful:
-        try:
-            from reportlab.lib.pagesizes import letter
-            from reportlab.pdfgen import canvas
-            
-            c = canvas.Canvas(pdf_path, pagesize=letter)
-            width, height = letter
-            
-            c.setFont("Helvetica-Bold", 16)
-            c.drawString(40, height - 40, "Erreur de conversion PDF")
-            
-            c.setFont("Helvetica", 12)
-            c.drawString(40, height - 80, "La conversion du document DOCX en PDF a échoué.")
-            c.drawString(40, height - 100, "Veuillez télécharger le fichier DOCX à la place.")
-            c.drawString(40, height - 140, "Détails de l'erreur:")
-            
-            # Print error message
-            y = height - 160
-            for i, line in enumerate(error_message.split('\n')):
-                if line:
-                    c.drawString(60, y - (i * 15), line[:80])  # Limit line length
-            
-            c.save()
-        except Exception as e:
-            print(f"Failed to create error PDF: {str(e)}")
-            return None
-    
-    return pdf_path
+    return None
 
-def process_zip_file(zip_path, output_dir, status_dir=None):
+def process_zip_file(zip_path, output_dir, status_dir=None, job_id=None):
     """
     Process a zip file containing .doc/.docx files:
     1. Extract all .doc and .docx files
@@ -317,112 +332,219 @@ def process_zip_file(zip_path, output_dir, status_dir=None):
     3. Merge all into a single .docx
     4. Convert the merged file to PDF
     
-    This function operates asynchronously and updates a status file
+    This function operates asynchronously and updates a status file.
+    If job_id is provided, it will update the database with processing status.
     """
-    if status_dir is None:
-        status_dir = output_dir
-        
-    extract_dir = os.path.join(output_dir, 'extracted')
-    converted_dir = os.path.join(output_dir, 'converted')
-    merged_docx_path = os.path.join(output_dir, 'merged.docx')
-    merged_pdf_path = os.path.join(output_dir, 'merged.pdf')
-    
-    os.makedirs(extract_dir, exist_ok=True)
-    os.makedirs(converted_dir, exist_ok=True)
-    
-    start_time = int(time.time())
-    
+    # Function to be run in a separate thread
     def process_thread():
+        start_time = int(time.time())
+        
         try:
-            # 1. Extract files
+            # Créer les dossiers de sortie
+            os.makedirs(output_dir, exist_ok=True)
+            if status_dir:
+                os.makedirs(status_dir, exist_ok=True)
+            
+            # Étape 1: Extraction des fichiers
             save_status(status_dir, {
                 'percent': 10,
-                'status_text': 'Extraction des fichiers du ZIP...',
+                'status_text': 'Extraction des fichiers...',
                 'current_step': 'extract',
                 'complete': False,
                 'start_time': start_time
             })
             
-            doc_files = extract_doc_files(zip_path, extract_dir)
-            file_count = len(doc_files)
+            # Extraire les fichiers .doc et .docx
+            extract_folder = os.path.join(output_dir, 'extracted')
+            extracted_files = extract_doc_files(zip_path, extract_folder)
             
+            if not extracted_files:
+                save_status(status_dir, {
+                    'percent': 0,
+                    'status_text': 'Aucun fichier DOC/DOCX trouvé dans l\'archive ZIP.',
+                    'current_step': 'error',
+                    'complete': False,
+                    'error': 'Archive vide ou sans fichiers DOC/DOCX',
+                    'start_time': start_time,
+                    'end_time': int(time.time())
+                })
+                
+                # Mettre à jour le statut dans la base de données
+                if job_id:
+                    try:
+                        import sys
+                        sys.path.append(os.getcwd())
+                        from flask import Flask
+                        from models import db, ProcessingJob
+                        
+                        app = Flask(__name__)
+                        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+                        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+                        db.init_app(app)
+                        
+                        with app.app_context():
+                            job = ProcessingJob.query.filter_by(job_id=job_id).first()
+                            if job:
+                                job.status = 'error'
+                                job.completed_at = datetime.now()
+                                db.session.commit()
+                    except Exception as db_err:
+                        print(f"Erreur lors de la mise à jour du statut dans la base de données: {str(db_err)}")
+                
+                return
+            
+            # Étape 2: Conversion des fichiers .doc en .docx
             save_status(status_dir, {
                 'percent': 30,
-                'status_text': f'{file_count} fichiers extraits.',
-                'current_step': 'extract',
-                'complete': False,
-                'file_count': file_count,
-                'start_time': start_time
-            })
-            
-            if not doc_files:
-                raise Exception("Aucun fichier .doc ou .docx trouvé dans l'archive ZIP.")
-            
-            # 2. Convert .doc to .docx
-            save_status(status_dir, {
-                'percent': 40,
-                'status_text': 'Conversion des fichiers .doc en .docx...',
+                'status_text': 'Conversion des fichiers DOC en DOCX...',
                 'current_step': 'convert',
                 'complete': False,
-                'file_count': file_count,
                 'start_time': start_time
             })
             
-            converted_files = []
-            for i, doc_path in enumerate(doc_files):
-                if i % max(1, int(file_count / 10)) == 0:  # Update status every ~10% of files
-                    percent = 40 + int((i / file_count) * 10)
-                    save_status(status_dir, {
-                        'percent': percent,
-                        'status_text': f'Conversion des fichiers ({i}/{file_count})...',
-                        'current_step': 'convert',
-                        'complete': False,
-                        'file_count': file_count,
-                        'start_time': start_time
-                    })
-                
-                if doc_path.lower().endswith('.doc'):
-                    converted_path = convert_doc_to_docx(doc_path, converted_dir)
-                    converted_files.append(converted_path)
-                else:
-                    # Copy the .docx file to the converted directory
-                    filename = os.path.basename(doc_path)
-                    converted_path = os.path.join(converted_dir, filename)
-                    shutil.copy2(doc_path, converted_path)
-                    converted_files.append(converted_path)
+            # Liste pour les fichiers DOCX (convertis ou originaux)
+            docx_files = []
             
-            # 3. Merge all .docx files
+            for file_path in extracted_files:
+                if file_path.lower().endswith('.doc'):
+                    # Convertir en DOCX
+                    docx_path = convert_doc_to_docx(file_path, extract_folder)
+                    if docx_path:
+                        docx_files.append(docx_path)
+                elif file_path.lower().endswith('.docx'):
+                    # Déjà au format DOCX
+                    docx_files.append(file_path)
+            
+            # Étape 3: Fusion des fichiers DOCX
             save_status(status_dir, {
                 'percent': 50,
-                'status_text': 'Fusion des documents en un seul fichier...',
+                'status_text': 'Fusion des documents...',
                 'current_step': 'merge',
                 'complete': False,
-                'file_count': file_count,
+                'file_count': len(docx_files),
                 'start_time': start_time
             })
             
-            merge_docx_files(converted_files, merged_docx_path, status_dir)
+            # Fusionner les fichiers DOCX
+            merged_docx_path = os.path.join(output_dir, 'merged.docx')
+            merge_result = merge_docx_files(docx_files, merged_docx_path, status_dir)
             
-            # 4. Convert merged file to PDF
-            convert_docx_to_pdf(merged_docx_path, merged_pdf_path, status_dir)
+            if not merge_result:
+                save_status(status_dir, {
+                    'percent': 0,
+                    'status_text': 'Échec de la fusion des documents.',
+                    'current_step': 'error',
+                    'complete': False,
+                    'error': 'Erreur lors de la fusion des fichiers DOCX',
+                    'start_time': start_time,
+                    'end_time': int(time.time())
+                })
+                
+                # Mettre à jour le statut dans la base de données
+                if job_id:
+                    try:
+                        import sys
+                        sys.path.append(os.getcwd())
+                        from flask import Flask
+                        from models import db, ProcessingJob
+                        
+                        app = Flask(__name__)
+                        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+                        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+                        db.init_app(app)
+                        
+                        with app.app_context():
+                            job = ProcessingJob.query.filter_by(job_id=job_id).first()
+                            if job:
+                                job.status = 'error'
+                                job.completed_at = datetime.now()
+                                db.session.commit()
+                    except Exception as db_err:
+                        print(f"Erreur lors de la mise à jour du statut dans la base de données: {str(db_err)}")
+                    
+                return
             
-            # 5. Completed
+            # Étape 4: Conversion en PDF
+            save_status(status_dir, {
+                'percent': 70,
+                'status_text': 'Conversion en PDF...',
+                'current_step': 'pdf',
+                'complete': False,
+                'start_time': start_time
+            })
+            
+            # Convertir en PDF
+            pdf_path = os.path.join(output_dir, 'merged.pdf')
+            pdf_result = convert_docx_to_pdf(merged_docx_path, pdf_path, status_dir)
+            
+            # Terminer
             end_time = int(time.time())
+            processing_time = end_time - start_time
+            
             save_status(status_dir, {
                 'percent': 100,
-                'status_text': 'Traitement terminé avec succès !',
+                'status_text': 'Traitement terminé avec succès.',
                 'current_step': 'complete',
                 'complete': True,
-                'file_count': file_count,
+                'file_count': len(docx_files),
+                'output_docx': os.path.basename(merged_docx_path),
+                'output_pdf': os.path.basename(pdf_result) if pdf_result else None,
                 'start_time': start_time,
-                'end_time': end_time
+                'end_time': end_time,
+                'processing_time': processing_time
             })
+            
+            # Mettre à jour le statut dans la base de données
+            if job_id:
+                try:
+                    import sys
+                    sys.path.append(os.getcwd())
+                    from flask import Flask
+                    from models import db, ProcessingJob, UsageStat
+                    
+                    app = Flask(__name__)
+                    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+                    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+                    db.init_app(app)
+                    
+                    with app.app_context():
+                        # Mettre à jour le job
+                        job = ProcessingJob.query.filter_by(job_id=job_id).first()
+                        if job:
+                            job.status = 'completed'
+                            job.completed_at = datetime.now()
+                            job.file_count = len(docx_files)
+                            job.processing_time = processing_time
+                            db.session.commit()
+                        
+                        # Mettre à jour les statistiques d'utilisation
+                        today = datetime.now().date()
+                        usage_stat = UsageStat.query.filter_by(date=today).first()
+                        
+                        if usage_stat:
+                            usage_stat.total_jobs += 1
+                            usage_stat.total_files_processed += len(docx_files)
+                            usage_stat.total_processing_time += processing_time
+                        else:
+                            usage_stat = UsageStat(
+                                date=today,
+                                total_jobs=1,
+                                total_files_processed=len(docx_files),
+                                total_processing_time=processing_time
+                            )
+                            db.session.add(usage_stat)
+                        
+                        db.session.commit()
+                except Exception as db_err:
+                    print(f"Erreur lors de la mise à jour du statut dans la base de données: {str(db_err)}")
             
         except Exception as e:
             error_message = str(e)
             error_traceback = traceback.format_exc()
             print(f"Error processing ZIP file: {error_message}")
             print(error_traceback)
+            
+            error_time = int(time.time())
             
             save_status(status_dir, {
                 'percent': 0,
@@ -432,8 +554,30 @@ def process_zip_file(zip_path, output_dir, status_dir=None):
                 'error': error_message,
                 'traceback': error_traceback,
                 'start_time': start_time,
-                'end_time': int(time.time())
+                'end_time': error_time
             })
+            
+            # Mettre à jour le job dans la base de données en cas d'erreur
+            if job_id:
+                try:
+                    import sys
+                    sys.path.append(os.getcwd())
+                    from flask import Flask
+                    from models import db, ProcessingJob
+                    
+                    app = Flask(__name__)
+                    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+                    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+                    db.init_app(app)
+                    
+                    with app.app_context():
+                        job = ProcessingJob.query.filter_by(job_id=job_id).first()
+                        if job:
+                            job.status = 'error'
+                            job.completed_at = datetime.now()
+                            db.session.commit()
+                except Exception as db_err:
+                    print(f"Erreur lors de la mise à jour du statut d'erreur dans la base de données: {str(db_err)}")
     
     # Start processing in a thread
     thread = threading.Thread(target=process_thread)

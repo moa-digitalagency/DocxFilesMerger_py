@@ -38,6 +38,68 @@ Contact: [moa@myoneart.com](mailto:moa@myoneart.com)
 - **Traitement de documents** : python-docx, docx2pdf
 - **Frontend** : HTML5, CSS3, JavaScript, Bootstrap
 - **Système de fichiers** : Gestion temporaire des fichiers zipfile
+- **Base de données** : PostgreSQL (pour le suivi des traitements)
+
+## 🚀 Déploiement
+
+L'application peut être déployée sur différents types de serveurs :
+
+### Configuration système minimale
+- **CPU** : 2 cœurs (4 recommandés)  
+- **RAM** : 2 Go minimum (4 Go recommandés)
+- **Espace disque** : 20 Go minimum
+- **OS** : Linux (Ubuntu 20.04 LTS ou plus récent recommandé)
+
+### Guide rapide de déploiement
+
+1. **Serveur VPS / Dédié** :
+   ```bash
+   # Installation des dépendances
+   sudo apt update && sudo apt install -y python3 python3-pip python3-venv postgresql nginx libreoffice-writer
+   
+   # Clonage du dépôt
+   git clone https://github.com/votre-repo/docxfilesmerger.git
+   cd docxfilesmerger
+   
+   # Configuration de l'environnement
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   
+   # Configuration de la base de données PostgreSQL
+   sudo -u postgres createdb docxfilesmerger
+   sudo -u postgres psql -c "CREATE USER docxfilesmerger WITH PASSWORD 'password';"
+   sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE docxfilesmerger TO docxfilesmerger;"
+   
+   # Démarrage avec Gunicorn
+   gunicorn --bind 0.0.0.0:5000 main:app
+   ```
+
+2. **Hébergement partagé avec cPanel** :
+   - Assurez-vous que votre hébergement supporte Python 3.7+ et PostgreSQL
+   - Créez une application Python via l'interface cPanel
+   - Téléchargez les fichiers de l'application
+   - Créez une base de données PostgreSQL via cPanel
+   - Configurez le fichier `.htaccess` pour Apache
+   ```
+   RewriteEngine On
+   RewriteCond %{REQUEST_FILENAME} !-f
+   RewriteRule ^(.*)$ /main.py [QSA,L]
+   
+   <Files ~ "\.(py|env)$">
+       Order allow,deny
+       Deny from all
+   </Files>
+   
+   <Files main.py>
+       SetHandler wsgi-script
+       Options +ExecCGI
+   </Files>
+   ```
+
+### Documentation détaillée
+
+Pour des instructions complètes sur le déploiement, voir notre documentation détaillée disponible à [moa@myoneart.com](mailto:moa@myoneart.com).
 
 ## 🛠️ Raccourcis clavier
 

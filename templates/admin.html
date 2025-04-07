@@ -1,0 +1,155 @@
+{#
+  DocxFilesMerger - Application de traitement et fusion de documents.
+  Développé par MOA Digital Agency LLC (https://myoneart.com)
+  Email: moa@myoneart.com
+  Copyright © 2025 MOA Digital Agency LLC. Tous droits réservés.
+#}
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i> Tableau de bord</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="card border-0 bg-light mb-3">
+                                <div class="card-body">
+                                    <h6 class="text-muted">Traitements totaux</h6>
+                                    <h2 class="fw-bold">{{ stats.total_jobs }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 bg-light mb-3">
+                                <div class="card-body">
+                                    <h6 class="text-muted">Fichiers traités</h6>
+                                    <h2 class="fw-bold">{{ stats.total_files }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 bg-light mb-3">
+                                <div class="card-body">
+                                    <h6 class="text-muted">Temps moyen</h6>
+                                    <h2 class="fw-bold">{{ stats.avg_time }}s</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Traitements récents -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i> Traitements récents</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Fichier</th>
+                                    <th>Statut</th>
+                                    <th>Fichiers</th>
+                                    <th>Durée (s)</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for job in recent_jobs %}
+                                <tr>
+                                    <td>{{ job.id }}</td>
+                                    <td class="text-truncate" style="max-width: 150px;">{{ job.original_filename }}</td>
+                                    <td>
+                                        {% if job.status == 'completed' %}
+                                        <span class="badge bg-success">Terminé</span>
+                                        {% elif job.status == 'error' %}
+                                        <span class="badge bg-danger">Erreur</span>
+                                        {% elif job.status == 'processing' %}
+                                        <span class="badge bg-primary">En cours</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ job.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ job.file_count or 'N/A' }}</td>
+                                    <td>{{ job.processing_time or 'N/A' }}</td>
+                                    <td>{{ job.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if not recent_jobs %}
+                    <p class="text-center text-muted py-3">Aucun traitement récent.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats par jour -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Statistiques par jour</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Traitements</th>
+                                    <th>Fichiers</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in daily_stats %}
+                                <tr>
+                                    <td>{{ stat.date.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ stat.total_jobs }}</td>
+                                    <td>{{ stat.total_files_processed }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if not daily_stats %}
+                    <p class="text-center text-muted py-3">Aucune statistique disponible.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Configuration -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i> Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="/admin/config">
+                        {% for config in configs %}
+                        <div class="mb-3">
+                            <label for="{{ config.key }}" class="form-label">{{ config.description }}</label>
+                            <input type="text" class="form-control" id="{{ config.key }}" name="{{ config.key }}" value="{{ config.value }}">
+                        </div>
+                        {% endfor %}
+                        <button type="submit" class="btn btn-primary btn-sm w-100">Enregistrer</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
